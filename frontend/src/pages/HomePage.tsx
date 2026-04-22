@@ -59,7 +59,7 @@ const HomePage: React.FC = () => {
         <aside className="w-56 bg-gray-50 border-r border-gray-200 min-h-screen p-4">
           {/* Organization */}
           <div className="mb-8">
-            <div className="text-sm font-semibold text-gray-600 mb-4">Angel Thomas</div>
+            <div className="text-sm font-semibold text-gray-600 mb-4">Usuario</div>
             <div className="text-xs text-gray-500">Organization</div>
           </div>
 
@@ -86,47 +86,7 @@ const HomePage: React.FC = () => {
                 >
                   <span className="text-sm">Rules</span>
                 </Link>
-                <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 cursor-pointer">
-                  <span className="text-sm">Quality profiles</span>
-                </div>
-                <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 cursor-pointer">
-                  <span className="text-sm">Quality gates</span>
-                </div>
               </nav>
-            </div>
-
-            {/* Access */}
-            <div>
-              <h3 className="text-xs font-semibold text-gray-600 uppercase mb-3">Access</h3>
-              <nav className="space-y-2">
-                <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 cursor-pointer text-sm">
-                  Billing and upgrade
-                </div>
-                <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 cursor-pointer text-sm">
-                  Members
-                </div>
-                <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 cursor-pointer text-sm">
-                  Groups
-                </div>
-                <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 cursor-pointer text-sm">
-                  Permissions
-                </div>
-                <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 cursor-pointer text-sm">
-                  Permission templates
-                </div>
-                <div className="flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 cursor-pointer text-sm">
-                  Webhooks
-                </div>
-              </nav>
-            </div>
-
-            {/* Administration */}
-            <div>
-              <h3 className="text-xs font-semibold text-gray-600 uppercase mb-3">Administration</h3>
-              <div className="flex items-center justify-between px-2 py-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 cursor-pointer">
-                <Settings size={18} />
-                <ChevronRight size={18} />
-              </div>
             </div>
           </nav>
         </aside>
@@ -138,7 +98,7 @@ const HomePage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <h1 className="text-3xl font-bold">Angel Thomas</h1>
+                  <h1 className="text-3xl font-bold">Usuario</h1>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded">OSS plan</span>
