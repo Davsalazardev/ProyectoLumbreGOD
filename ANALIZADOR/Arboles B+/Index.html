@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Árbol B+ Visualizador</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:#0b0d11;--surface:#13161d;--surface2:#1a1e28;--border:#252a38;
+    --accent:#4fffb0;--accent2:#4fa8ff;--accent3:#ff6b6b;--accent4:#ffdd57;
+    --text:#e8eaf0;--muted:#5a6080;
+    --font-mono:'JetBrains Mono',monospace;--font-ui:'Space Grotesk',sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--font-ui);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(79,255,176,.03)1px,transparent 1px),linear-gradient(90deg,rgba(79,255,176,.03)1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+  header{position:relative;z-index:10;padding:.65rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:1rem;flex-wrap:wrap;flex-shrink:0;background:rgba(11,13,17,.97)}
+  header h1{font-family:var(--font-mono);font-size:1rem;font-weight:700;color:var(--accent);letter-spacing:-.02em}
+  header h1 span{color:var(--accent2)}
+  .tagline{font-size:.68rem;color:var(--muted);font-weight:300;letter-spacing:.08em;text-transform:uppercase}
+  .main-layout{position:relative;z-index:1;display:grid;grid-template-columns:238px 1fr 248px;flex:1;overflow:hidden}
+  .sidebar{border-right:1px solid var(--border);padding:.9rem;display:flex;flex-direction:column;gap:.9rem;overflow-y:auto;background:rgba(11,13,17,.7)}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.75rem .875rem}
+  .panel-title{font-size:.6rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.65rem}
+  .input-row{display:flex;gap:7px;margin-bottom:6px}
+  input[type="number"],input[type="text"]{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-mono);font-size:.85rem;padding:.38rem .65rem;outline:none;transition:border-color .2s;-moz-appearance:textfield}
+  input[type="number"]::-webkit-outer-spin-button,input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none}
+  input[type="number"]:focus,input[type="text"]:focus{border-color:var(--accent)}
+  .btn{border:1px solid;border-radius:6px;cursor:pointer;font-family:var(--font-mono);font-size:.7rem;font-weight:700;padding:.4rem .72rem;transition:all .15s;letter-spacing:.02em;background:transparent}
+  .btn:active{transform:scale(.96)}
+  .btn-insert{border-color:var(--accent);color:var(--accent)}
+  .btn-insert:hover{background:rgba(79,255,176,.1)}
+  .btn-search{border-color:var(--accent2);color:var(--accent2);width:100%;margin-bottom:5px}
+  .btn-search:hover{background:rgba(79,168,255,.1)}
+  .btn-delete{border-color:var(--accent3);color:var(--accent3);width:100%}
+  .btn-delete:hover{background:rgba(255,107,107,.1)}
+  .btn-clear{border-color:var(--border);color:var(--muted);width:100%}
+  .btn-clear:hover{border-color:var(--muted);color:var(--text)}
+  .btn-preset{border-color:var(--border);color:var(--muted);width:100%;font-size:.66rem;padding:.34rem;margin-top:4px}
+  .btn-preset:hover{border-color:var(--accent2);color:var(--accent2)}
+  select{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-mono);font-size:.78rem;padding:.36rem .55rem;outline:none;cursor:pointer;width:100%;transition:border-color .2s}
+  select:focus{border-color:var(--accent2)}
+  .info-row{display:flex;justify-content:space-between;align-items:center;font-size:.7rem;padding:3px 0;border-bottom:1px solid var(--border)}
+  .info-row:last-child{border-bottom:none}
+  .info-label{color:var(--muted)}
+  .info-val{font-family:var(--font-mono);font-weight:600;color:var(--accent2)}
+  .legend-item{display:flex;align-items:center;gap:7px;font-size:.7rem;color:var(--muted);margin-bottom:4px}
+  .legend-box{width:15px;height:11px;border-radius:3px;flex-shrink:0}
+  .canvas-area{position:relative;overflow:hidden;background:transparent;cursor:grab}
+  .canvas-area.grabbing{cursor:grabbing}
+  #tree-svg{position:absolute;top:0;left:0;transform-origin:0 0;overflow:visible}
+  .zoom-controls{position:absolute;bottom:12px;right:12px;display:flex;gap:5px;z-index:10}
+  .zoom-btn{width:28px;height:28px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-mono);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+  .zoom-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+  .zoom-btn:active{transform:scale(.94)}
+  .empty-state{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);font-size:.8rem;gap:.875rem;text-align:center;pointer-events:none}
+  .empty-glyph{font-family:var(--font-mono);font-size:2.5rem;color:var(--border)}
+  .pseudo-panel{border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;background:rgba(11,13,17,.7)}
+  .pseudo-scroll{flex:1;overflow-y:auto}
+  .ps-head{display:flex;align-items:center;gap:6px;padding:5px 10px;font-size:.6rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:2}
+  .ps-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0}
+  .pline{font-size:.67rem;font-family:var(--font-mono);color:var(--muted);padding:2px 10px;line-height:1.8;white-space:pre;border-left:3px solid transparent;transition:background .2s,color .2s,border-left-color .2s}
+  .pline.active{background:rgba(79,168,255,.08);color:var(--accent2);border-left-color:var(--accent2);font-weight:700}
+  .pline.done{background:rgba(79,255,176,.05);color:rgba(79,255,176,.55);border-left-color:rgba(79,255,176,.25)}
+  .log-panel{border-top:1px solid var(--border);padding:5px 9px;height:92px;overflow-y:auto;flex-shrink:0}
+  .log-e{font-family:var(--font-mono);font-size:.63rem;color:var(--muted);line-height:1.7}
+  .log-e.ok{color:var(--accent)}.log-e.er{color:var(--accent3)}.log-e.hi{color:var(--accent2)}.log-e.warn{color:var(--accent4)}
+  .speed-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-top:1px solid var(--border);font-size:.63rem;color:var(--muted);flex-shrink:0}
+  .speed-row input[type=range]{flex:1;-webkit-appearance:none;height:3px;border-radius:2px;background:var(--border);outline:none}
+  .speed-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--accent2);cursor:pointer}
+  .speed-val{font-family:var(--font-mono);color:var(--accent2);min-width:36px;text-align:right}
+  @keyframes dashShift{from{stroke-dashoffset:0}to{stroke-dashoffset:-12px}}
+  .leaf-link{animation:dashShift 2s linear infinite}
+</style>
+</head>
+<body>
+<header>
+  <h1>B<span>+</span>Tree</h1>
+  <span class="tagline">Visualizador interactivo · árbol B+</span>
+</header>
+<div class="main-layout">
+  <aside class="sidebar">
+    <div class="panel">
+      <div class="panel-title">Insertar clave</div>
+      <div class="input-row">
+        <input type="number" id="key-input" placeholder="ej. 5" min="0" max="999"/>
+        <button class="btn btn-insert" onclick="insertKey()">+ INS</button>
+      </div>
+      <button class="btn btn-preset" onclick="insertPreset()">▶ Demo (30 claves)</button>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Generar árbol</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">
+        <button class="btn btn-preset" style="flex:1;padding:.32rem" onclick="genTree(10)">✦ Mini (10)</button>
+        <button class="btn btn-preset" style="flex:1;padding:.32rem" onclick="genTree(20)">✦ Med (20)</button>
+      </div>
+      <div style="display:flex;gap:4px;margin-bottom:6px">
+        <button class="btn btn-preset" style="flex:1;padding:.32rem" onclick="genTree(50)">✦ Large (50)</button>
+        <button class="btn btn-preset" style="flex:1;padding:.32rem" onclick="genTree(100)">✦ XL (100)</button>
+      </div>
+      <div class="input-row">
+        <input type="number" id="custom-count" placeholder="cant." min="1" max="200" value="20"/>
+        <button class="btn btn-preset" onclick="genTree(+document.getElementById('custom-count').value)" style="font-size:.65rem;padding:.3rem .5rem">✦</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Buscar / Eliminar</div>
+      <button class="btn btn-search" onclick="searchKey()">⌕ Buscar seleccionado</button>
+      <button class="btn btn-delete" onclick="deleteSelected()" id="del-btn" style="opacity:.5">Eliminar seleccionado</button>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Validación B+</div>
+      <button class="btn btn-search" onclick="validateAndReport()" style="font-size:.68rem">✓ Validar estructura</button>
+    </div>
+    <div class="panel">
+      <select id="order-sel" onchange="changeOrder()">
+        <option value="2">t = 2  (máx 3 claves)</option>
+        <option value="3">t = 3  (máx 5 claves)</option>
+        <option value="4" selected>t = 4  (máx 7 claves)</option>
+        <option value="5">t = 5  (máx 9 claves)</option>
+      </select>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Estadísticas</div>
+      <div class="info-row"><span class="info-label">Altura</span><span class="info-val" id="stat-h">—</span></div>
+      <div class="info-row"><span class="info-label">Nodos totales</span><span class="info-val" id="stat-n">—</span></div>
+      <div class="info-row"><span class="info-label">Nodos internos</span><span class="info-val" id="stat-i">—</span></div>
+      <div class="info-row"><span class="info-label">Nodos hoja</span><span class="info-val" id="stat-l">—</span></div>
+      <div class="info-row"><span class="info-label">Claves totales</span><span class="info-val" id="stat-k">—</span></div>
+      <div class="info-row"><span class="info-label">Factor de llenado</span><span class="info-val" id="stat-f">—</span></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Vista</div>
+      <button class="btn btn-clear" onclick="fitView()" style="margin-bottom:5px">⊡ Ajustar vista</button>
+      <button class="btn btn-clear" id="dbl-btn" onclick="toggleDoublyLinked()" style="margin-bottom:5px">↔ Lista doble (OFF)</button>
+      <button class="btn btn-clear" onclick="resetTree()">Limpiar árbol</button>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Leyenda</div>
+      <div class="legend-item"><div class="legend-box" style="background:#1e1a10;border:1.5px solid #ffdd57"></div>Nodo raíz</div>
+      <div class="legend-item"><div class="legend-box" style="background:#1a2030;border:1.5px solid #4fa8ff"></div>Nodo interno</div>
+      <div class="legend-item"><div class="legend-box" style="background:#1a2e1f;border:1.5px solid #4fffb0"></div>Nodo hoja</div>
+      <div class="legend-item"><div class="legend-box" style="background:rgba(255,221,87,.2);border:1.5px solid #ffdd57"></div>Seleccionado</div>
+      <div class="legend-item"><div class="legend-box" style="background:rgba(79,255,176,.2);border:1.5px solid #4fffb0"></div>Encontrado</div>
+      <div style="font-size:.66rem;color:var(--muted);margin-top:3px">Líneas punteadas verdes = lista enlazada de hojas.</div>
+    </div>
+  </aside>
+
+  <main class="canvas-area" id="canvas-area">
+    <div class="empty-state" id="empty-state">
+      <div class="empty-glyph">∅</div>
+      <div>El árbol está vacío.<br>Inserta una clave o carga el<br><strong style="color:var(--accent2)">Demo</strong></div>
+    </div>
+    <svg id="tree-svg" width="10" height="10"></svg>
+    <div class="zoom-controls">
+      <button class="zoom-btn" onclick="zoom(1.2)">+</button>
+      <button class="zoom-btn" onclick="zoom(0.83)">−</button>
+      <button class="zoom-btn" onclick="fitView()" style="font-size:.72rem">⊡</button>
+    </div>
+  </main>
+
+  <aside class="pseudo-panel">
+    <div class="pseudo-scroll" id="pseudo-scroll">
+      <div class="ps-head"><div class="ps-dot" style="background:#4fa8ff"></div>Búsqueda</div>
+      <div class="pline" id="s1"> 1. nodo ← raíz</div>
+      <div class="pline" id="s2"> 2. Mientras nodo no sea hoja</div>
+      <div class="pline" id="s3"> 3.   i ← índice hijo correcto</div>
+      <div class="pline" id="s4"> 4.   nodo ← hijos[i]</div>
+      <div class="pline" id="s5"> 5. Fin Mientras</div>
+      <div class="pline" id="s6"> 6. Buscar clave en nodo.claves</div>
+      <div class="pline" id="s7"> 7. Si existe → retornar registro</div>
+      <div class="pline" id="s8"> 8. Si no    → retornar NULL</div>
+      <div class="ps-head" style="margin-top:2px"><div class="ps-dot" style="background:#4fffb0"></div>Inserción</div>
+      <div class="pline" id="i1"> 1. hoja ← BUSCAR_HOJA(raíz, c)</div>
+      <div class="pline" id="i2"> 2. Insertar en orden en hoja</div>
+      <div class="pline" id="i3"> 3. Si no desborda → terminar</div>
+      <div class="pline" id="i4"> 4. [Desbordamiento detectado]</div>
+      <div class="pline" id="i5"> 5.   Dividir hoja en dos</div>
+      <div class="pline" id="i6"> 6.   Copiar primera clave al padre</div>
+      <div class="pline" id="i7"> 7.   INSERTAR_EN_PADRE(…)</div>
+      <div class="pline" id="i8"> 8. Si raíz divide → nueva raíz</div>
+      <div class="pline" id="i9"> 9. Si padre desborda → DIVID_INT</div>
+      <div class="ps-head" style="margin-top:2px"><div class="ps-dot" style="background:#ff6b6b"></div>Eliminación</div>
+      <div class="pline" id="d1"> 1. hoja ← BUSCAR_HOJA(raíz, c)</div>
+      <div class="pline" id="d2"> 2. Eliminar clave de la hoja</div>
+      <div class="pline" id="d3"> 3. Si ≥ mín claves → terminar</div>
+      <div class="pline" id="d4"> 4. [Subdesbordamiento]</div>
+      <div class="pline" id="d5"> 5.   Buscar hermano con extra</div>
+      <div class="pline" id="d6"> 6.   Si tiene extra → REDISTRIB</div>
+      <div class="pline" id="d7"> 7.   Si no → FUSIONAR nodos</div>
+      <div class="pline" id="d8"> 8.   Actualizar padre</div>
+      <div class="pline" id="d9"> 9. Si raíz vacía → hijo=nueva raíz</div>
+    </div>
+    <div class="log-panel" id="log-panel"></div>
+    <div class="speed-row">
+      <span>Vel.</span>
+      <input type="range" id="speed-r" min="100" max="1800" value="800" step="100"
+        oninput="stepDelay=2000-+this.value;document.getElementById('speed-v').textContent=(2000-+this.value)+'ms'">
+      <span class="speed-val" id="speed-v">1200ms</span>
+    </div>
+  </aside>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+let t = 4;          // orden mínimo
+let root = null;
+let selectedKey = null;
+let isRunning = false;
+let stepDelay = 1200;
+let showDoublyLinked = false;
+let audioContext = null;
+
+// ─── AUDIO ────────────────────────────────────────────────────────────────────
+function initAudio() {
+  if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioContext.state === 'suspended') audioContext.resume();
+}
+function playSound(type = 'click') {
+  try {
+    initAudio();
+    const now = audioContext.currentTime;
+    const freqs = { click:800, success:1200, warning:600, error:400 };
+    const durs  = { click:.1,  success:.15,  warning:.12, error:.2  };
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.connect(gain); gain.connect(audioContext.destination);
+    osc.frequency.value = freqs[type] || 800;
+    gain.gain.setValueAtTime(.1, now);
+    gain.gain.linearRampToValueAtTime(0, now + (durs[type] || .1));
+    osc.start(now); osc.stop(now + (durs[type] || .1));
+  } catch(e) {}
+}
+
+// ─── NODO ─────────────────────────────────────────────────────────────────────
+class Node {
+  constructor(leaf) {
+    this.leaf = leaf;
+    this.keys = [];
+    this.children = [];
+    this.next = null;   // siguiente hoja
+    this.prev = null;   // hoja anterior (lista doble)
+    this.id = 'n' + (Math.random() * 1e9 | 0);
+  }
+}
+
+// ─── BÚSQUEDA ─────────────────────────────────────────────────────────────────
+function findLeaf(node, key) {
+  while (!node.leaf) {
+    let i = node.keys.findIndex(k => key < k);
+    if (i === -1) i = node.keys.length;
+    node = node.children[i];
+  }
+  return node;
+}
+
+function search(key) {
+  if (!root) return false;
+  const leaf = findLeaf(root, key);
+  return leaf.keys.includes(key);
+}
+
+// ─── INSERCIÓN ────────────────────────────────────────────────────────────────
+function insert(key) {
+  if (!root) root = new Node(true);
+  if (search(key)) return false;
+
+  // insertRec devuelve {key, right} si hubo split, null si no
+  const res = insertRec(root, key);
+  if (res) {
+    const nr = new Node(false);
+    nr.keys = [res.key];
+    nr.children = [root, res.right];
+    root = nr;
+  }
+  return true;
+}
+
+function insertRec(node, key) {
+  if (node.leaf) {
+    const i = sortedIndex(node.keys, key);
+    node.keys.splice(i, 0, key);
+    if (node.keys.length > 2 * t - 1) return splitLeaf(node);
+    return null;
+  }
+  let ci = node.keys.findIndex(k => key < k);
+  if (ci === -1) ci = node.keys.length;
+
+  const res = insertRec(node.children[ci], key);
+  if (res) {
+    node.keys.splice(ci, 0, res.key);
+    node.children.splice(ci + 1, 0, res.right);
+    if (node.keys.length > 2 * t - 1) return splitInternal(node);
+  }
+  return null;
+}
+
+function splitLeaf(node) {
+  const mid = Math.ceil(node.keys.length / 2);
+  const right = new Node(true);
+  right.keys = node.keys.splice(mid);
+  // Reparar lista enlazada
+  right.next = node.next;
+  if (node.next) node.next.prev = right;
+  right.prev = node;
+  node.next = right;
+  // El separador es la PRIMERA clave de la hoja derecha (se COPIA, no mueve)
+  return { key: right.keys[0], right };
+}
+
+function splitInternal(node) {
+  const mid = Math.floor(node.keys.length / 2);
+  const midKey = node.keys[mid];
+  const right = new Node(false);
+  right.keys = node.keys.splice(mid + 1);       // claves después del medio
+  right.children = node.children.splice(mid + 1); // hijos correspondientes
+  node.keys.splice(mid, 1);                      // quitar la clave del medio (sube)
+  return { key: midKey, right };
+}
+
+function sortedIndex(arr, val) {
+  let lo = 0, hi = arr.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (arr[mid] < val) lo = mid + 1; else hi = mid;
+  }
+  return lo;
+}
+
+// ─── ELIMINACIÓN (CORRECCIÓN PRINCIPAL) ───────────────────────────────────────
+// deleteKey devuelve true si eliminó, false si no existía.
+// La función trabaja de forma recursiva y maneja merge/borrow correctamente.
+function deleteKey(key) {
+  if (!root) return false;
+  const ok = deleteRec(root, null, -1, key);
+  if (!ok) return false;
+  // Si la raíz quedó vacía y no es hoja, su único hijo se convierte en raíz
+  if (!root.leaf && root.keys.length === 0) {
+    root = root.children[0];
+  }
+  return true;
+}
+
+// node: nodo actual
+// parent: nodo padre (null si es raíz)
+// parentIdx: índice de este nodo en parent.children
+// Retorna true si eliminó la clave
+function deleteRec(node, parent, parentIdx, key) {
+  if (node.leaf) {
+    const idx = node.keys.indexOf(key);
+    if (idx === -1) return false;
+    node.keys.splice(idx, 1);
+    // Si quedan suficientes claves O es la raíz, no hay problema
+    if (node === root || node.keys.length >= t - 1) return true;
+    // Hay subdesbordamiento — lo resuelve el padre
+    fixDeficiency(parent, parentIdx);
+    return true;
+  }
+
+  // Nodo interno: encontrar hijo correcto
+  let ci = node.keys.findIndex(k => key < k);
+  if (ci === -1) ci = node.keys.length;
+
+  const ok = deleteRec(node.children[ci], node, ci, key);
+  if (!ok) return false;
+
+  // Después de la recursión, la clave separadora puede estar desactualizada
+  // (si eliminamos el primer elemento de una hoja)
+  // La actualizamos recorriendo hacia arriba
+  updateSeparators(node);
+
+  // Si este nodo tuvo deficiencia (puede ocurrir tras merge en hijo)
+  if (node !== root && node.keys.length < t - 1) {
+    fixDeficiency(parent, parentIdx);
+  }
+  // Si la raíz quedó vacía
+  if (node === root && !node.leaf && node.keys.length === 0) {
+    root = node.children[0];
+  }
+  return true;
+}
+
+// Actualiza separadores internos para que reflejen el mínimo real de cada subárbol
+function updateSeparators(node) {
+  if (node.leaf) return;
+  for (let i = 0; i < node.keys.length; i++) {
+    // El separador i debe ser la primera clave de la hoja más a la izquierda
+    // del subárbol children[i+1]
+    const firstKey = getFirstLeafKey(node.children[i + 1]);
+    if (firstKey !== null) node.keys[i] = firstKey;
+  }
+}
+
+function getFirstLeafKey(node) {
+  if (!node) return null;
+  let n = node;
+  while (!n.leaf) n = n.children[0];
+  return n.keys.length > 0 ? n.keys[0] : null;
+}
+
+// Arregla la deficiencia en parent.children[idx]
+// Intenta: (1) tomar del hermano izquierdo, (2) tomar del hermano derecho,
+// (3) fusionar con derecho, (4) fusionar con izquierdo
+function fixDeficiency(parent, idx) {
+  if (!parent) return;
+  const node = parent.children[idx];
+  const minKeys = t - 1;
+
+  const leftSib  = idx > 0                          ? parent.children[idx - 1] : null;
+  const rightSib = idx < parent.children.length - 1 ? parent.children[idx + 1] : null;
+
+  // ── (1) Tomar del hermano izquierdo ──────────────────────────────────────
+  if (leftSib && leftSib.keys.length > minKeys) {
+    if (node.leaf) {
+      // Mover la última clave del hermano izquierdo a este nodo
+      node.keys.unshift(leftSib.keys.pop());
+      // Actualizar separador en el padre
+      parent.keys[idx - 1] = node.keys[0];
+    } else {
+      // Rotar: separador del padre baja al nodo, última clave del hermano sube
+      node.keys.unshift(parent.keys[idx - 1]);
+      parent.keys[idx - 1] = leftSib.keys.pop();
+      // Mover el último hijo del hermano izquierdo al inicio de este nodo
+      node.children.unshift(leftSib.children.pop());
+    }
+    return;
+  }
+
+  // ── (2) Tomar del hermano derecho ────────────────────────────────────────
+  if (rightSib && rightSib.keys.length > minKeys) {
+    if (node.leaf) {
+      node.keys.push(rightSib.keys.shift());
+      // Actualizar separador en el padre
+      parent.keys[idx] = rightSib.keys[0];
+    } else {
+      node.keys.push(parent.keys[idx]);
+      parent.keys[idx] = rightSib.keys.shift();
+      node.children.push(rightSib.children.shift());
+    }
+    return;
+  }
+
+  // ── (3) Fusionar con hermano derecho ─────────────────────────────────────
+  if (rightSib) {
+    mergeNodes(parent, idx, node, rightSib);
+    return;
+  }
+
+  // ── (4) Fusionar con hermano izquierdo ───────────────────────────────────
+  if (leftSib) {
+    mergeNodes(parent, idx - 1, leftSib, node);
+    return;
+  }
+}
+
+// Fusiona left y right (ambos hijos de parent en posiciones idx y idx+1)
+// Resultado: left absorbe right, se elimina el separador parent.keys[idx]
+function mergeNodes(parent, idx, left, right) {
+  if (left.leaf) {
+    // Hojas: simplemente concatenar claves
+    left.keys = left.keys.concat(right.keys);
+    // Reparar lista enlazada
+    left.next = right.next;
+    if (right.next) right.next.prev = left;
+  } else {
+    // Nodos internos: el separador del padre BAJA al nodo izquierdo
+    left.keys.push(parent.keys[idx]);
+    left.keys = left.keys.concat(right.keys);
+    left.children = left.children.concat(right.children);
+  }
+  // Eliminar separador y referencia a right en el padre
+  parent.keys.splice(idx, 1);
+  parent.children.splice(idx + 1, 1);
+}
+
+// ─── VALIDACIÓN ───────────────────────────────────────────────────────────────
+function validateBPlusTree() {
+  if (!root) return { valid: true, errors: [] };
+  const errors = [];
+  const minK = t - 1;
+  const maxK = 2 * t - 1;
+
+  function check(node, isRoot, depth, minKey, maxKey) {
+    // Orden de claves
+    for (let i = 1; i < node.keys.length; i++) {
+      if (node.keys[i] <= node.keys[i - 1])
+        errors.push(`Claves desordenadas en nodo`);
+    }
+    // Rango
+    if (minKey !== null && node.keys[0] < minKey)
+      errors.push(`Clave ${node.keys[0]} fuera de rango (mín esperado ${minKey})`);
+    if (maxKey !== null && node.keys[node.keys.length - 1] >= maxKey)
+      errors.push(`Clave ${node.keys[node.keys.length - 1]} fuera de rango (máx esperado ${maxKey})`);
+
+    if (!isRoot) {
+      if (node.keys.length < minK)
+        errors.push(`Nodo con ${node.keys.length} claves (mín ${minK})`);
+      if (node.keys.length > maxK)
+        errors.push(`Nodo con ${node.keys.length} claves (máx ${maxK})`);
+    }
+
+    if (!node.leaf) {
+      if (node.children.length !== node.keys.length + 1)
+        errors.push(`Nodo interno: ${node.children.length} hijos pero ${node.keys.length} claves`);
+      for (let i = 0; i < node.children.length; i++) {
+        const lo = i === 0 ? null : node.keys[i - 1];
+        const hi = i === node.keys.length ? null : node.keys[i];
+        check(node.children[i], false, depth + 1, lo, hi);
+      }
+    }
+  }
+  check(root, true, 0, null, null);
+  return { valid: errors.length === 0, errors };
+}
+
+function validateAndReport() {
+  if (!root) { logEntry('Árbol vacío', 'er'); return; }
+  const result = validateBPlusTree();
+  if (result.valid) {
+    logEntry('✓ Árbol B+ estructuralmente VÁLIDO', 'ok');
+    playSound('success');
+  } else {
+    logEntry('❌ Errores de estructura:', 'er');
+    playSound('error');
+    result.errors.forEach(e => logEntry('  ' + e, 'er'));
+  }
+}
+
+// ─── PAN / ZOOM ───────────────────────────────────────────────────────────────
+let panX = 40, panY = 40, scale = 1, dragging = false, lastMX = 0, lastMY = 0;
+const canvasArea = document.getElementById('canvas-area');
+
+canvasArea.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  dragging = true; lastMX = e.clientX; lastMY = e.clientY;
+  canvasArea.classList.add('grabbing');
+});
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  panX += e.clientX - lastMX; panY += e.clientY - lastMY;
+  lastMX = e.clientX; lastMY = e.clientY;
+  applyTransform();
+});
+window.addEventListener('mouseup', () => { dragging = false; canvasArea.classList.remove('grabbing'); });
+canvasArea.addEventListener('wheel', e => {
+  e.preventDefault();
+  const f = e.deltaY < 0 ? 1.12 : 0.89;
+  const r = canvasArea.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  panX = mx - (mx - panX) * f; panY = my - (my - panY) * f; scale *= f;
+  applyTransform();
+}, { passive: false });
+
+function applyTransform() {
+  document.getElementById('tree-svg').style.transform = `translate(${panX}px,${panY}px) scale(${scale})`;
+}
+function zoom(f) {
+  const r = canvasArea.getBoundingClientRect();
+  const cx = r.width / 2, cy = r.height / 2;
+  panX = cx - (cx - panX) * f; panY = cy - (cy - panY) * f; scale *= f;
+  applyTransform();
+}
+function fitView() {
+  const svg = document.getElementById('tree-svg');
+  if (!root || root.keys.length === 0) { panX = 40; panY = 40; scale = 1; applyTransform(); return; }
+  const w = parseFloat(svg.getAttribute('width')) || 1;
+  const h = parseFloat(svg.getAttribute('height')) || 1;
+  const rect = canvasArea.getBoundingClientRect();
+  const pad = 40;
+  scale = Math.min((rect.width - pad * 2) / w, (rect.height - pad * 2) / h, 1.6);
+  panX = pad; panY = pad;
+  applyTransform();
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const NODE_H = 34, V_GAP = 68;
+const hlState = {}, hlFoundKey = {};
+
+function cellW() { return 38; }
+function nodeWidth(n) { return Math.max(n.keys.length, 1) * cellW() + 8; }
+
+function layoutTree(node, depth, counter) {
+  if (node.leaf) {
+    const x = counter.val;
+    counter.val += nodeWidth(node) + 22;
+    return { node, x, y: depth * (NODE_H + V_GAP), w: nodeWidth(node), children: [] };
+  }
+  const childLayouts = node.children.map(c => layoutTree(c, depth + 1, counter));
+  const leftX = childLayouts[0].x;
+  const rightX = childLayouts[childLayouts.length - 1].x + childLayouts[childLayouts.length - 1].w;
+  const x = (leftX + rightX) / 2 - nodeWidth(node) / 2;
+  return { node, x, y: depth * (NODE_H + V_GAP), w: nodeWidth(node), children: childLayouts };
+}
+
+function flattenLayout(layout, acc = []) {
+  acc.push(layout);
+  for (const c of layout.children) flattenLayout(c, acc);
+  return acc;
+}
+
+function render() {
+  const svg = document.getElementById('tree-svg');
+  const empty = document.getElementById('empty-state');
+  if (!root || root.keys.length === 0) {
+    svg.style.display = 'none'; empty.style.display = 'flex';
+    updateStats(); return;
+  }
+  svg.style.display = 'block'; empty.style.display = 'none';
+  svg.innerHTML = '';
+
+  const counter = { val: 20 };
+  const layout = layoutTree(root, 0, counter);
+  const allNodes = flattenLayout(layout);
+  const maxX = Math.max(...allNodes.map(n => n.x + n.w)) + 30;
+  const maxY = Math.max(...allNodes.map(n => n.y)) + NODE_H + 30;
+  svg.setAttribute('viewBox', `0 0 ${maxX} ${maxY}`);
+  svg.setAttribute('width', maxX);
+  svg.setAttribute('height', maxY);
+
+  const defs = el('defs');
+  const marker = el('marker', { id:'arr', viewBox:'0 0 10 10', refX:'8', refY:'5', markerWidth:'5', markerHeight:'5', orient:'auto' });
+  marker.appendChild(el('path', { d:'M2,1 L8,5 L2,9', fill:'none', stroke:'#3a4060', 'stroke-width':'1.5', 'stroke-linecap':'round', 'stroke-linejoin':'round' }));
+  defs.appendChild(marker);
+  svg.appendChild(defs);
+
+  const edgeG = el('g'); drawEdges(layout, edgeG); svg.appendChild(edgeG);
+  const linkG = el('g'); drawLeafLinks(allNodes, linkG); svg.appendChild(linkG);
+  const nodeG = el('g'); for (const ln of allNodes) drawNode(ln, nodeG, ln.node === root); svg.appendChild(nodeG);
+  updateStats();
+}
+
+function drawEdges(layout, g) {
+  const px = layout.x + layout.w / 2, py = layout.y + NODE_H;
+  for (const c of layout.children) {
+    const cx = c.x + c.w / 2, cy = c.y;
+    g.appendChild(el('path', {
+      d: `M${px},${py} C${px},${py + V_GAP * .5} ${cx},${cy - V_GAP * .5} ${cx},${cy}`,
+      fill: 'none', stroke: '#2a3050', 'stroke-width': '1.5', 'marker-end': 'url(#arr)'
+    }));
+    drawEdges(c, g);
+  }
+}
+
+function drawLeafLinks(allNodes, g) {
+  const leaves = allNodes.filter(ln => ln.node.leaf);
+  for (const curr of leaves) {
+    if (!curr.node.next) continue;
+    const next = allNodes.find(ln => ln.node === curr.node.next);
+    if (!next) continue;
+    const x1 = curr.x + curr.w, y1 = curr.y + NODE_H / 2;
+    const x2 = next.x, y2 = next.y + NODE_H / 2;
+    g.appendChild(el('path', {
+      d: `M${x1},${y1} C${x1 + 18},${y1} ${x2 - 18},${y2} ${x2},${y2}`,
+      fill: 'none', stroke: '#4fffb0', 'stroke-width': '2',
+      'stroke-dasharray': '6 4', 'stroke-opacity': '.8', class: 'leaf-link'
+    }));
+    // Flecha
+    const ang = Math.atan2(y2 - y1, x2 - x1);
+    const ax = x2 - 8 * Math.cos(ang), ay = y2 - 8 * Math.sin(ang);
+    g.appendChild(el('polygon', {
+      points: `${x2},${y2} ${ax - 5 * Math.sin(ang)},${ay + 5 * Math.cos(ang)} ${ax + 5 * Math.sin(ang)},${ay - 5 * Math.cos(ang)}`,
+      fill: '#4fffb0', 'fill-opacity': '.9'
+    }));
+    // Lista doblemente enlazada
+    if (showDoublyLinked && next.node.prev === curr.node) {
+      const midX = (x1 + x2) / 2;
+      g.appendChild(el('path', {
+        d: `M${x2},${y2} Q${midX},${y2 + 32} ${x1},${y1}`,
+        fill: 'none', stroke: '#ff4444', 'stroke-width': '2',
+        'stroke-dasharray': '5 4', class: 'leaf-link'
+      }));
+      const ang2 = Math.atan2(y1 - y2, x1 - x2);
+      const bx = x1 - 7 * Math.cos(ang2), by = y1 - 7 * Math.sin(ang2);
+      g.appendChild(el('polygon', {
+        points: `${x1},${y1} ${bx - 4 * Math.sin(ang2)},${by + 4 * Math.cos(ang2)} ${bx + 4 * Math.sin(ang2)},${by - 4 * Math.cos(ang2)}`,
+        fill: '#ff4444', 'fill-opacity': '1'
+      }));
+    }
+  }
+}
+
+function drawNode(layout, g, isRoot) {
+  const { node, x, y, w } = layout;
+  const hl = hlState[node.id] || '';
+  const isLeaf = node.leaf;
+  const cw = cellW();
+
+  let fill, stroke, strokeW = '1.5';
+  if (isRoot && !isLeaf)   { fill = '#1e1a10'; stroke = '#ffdd57'; }
+  else if (isLeaf)          { fill = '#1a2e1f'; stroke = '#4fffb0'; }
+  else                      { fill = '#171d2e'; stroke = '#4fa8ff'; }
+
+  if (hl === 'active')    { strokeW = '2.5'; stroke = '#4fa8ff'; fill = '#1a2035'; }
+  else if (hl === 'found') { strokeW = '2.5'; stroke = '#4fffb0'; fill = '#1a3025'; }
+  else if (hl === 'split') { strokeW = '2.5'; stroke = '#ff6b6b'; fill = '#2a1515'; }
+  else if (hl === 'merge') { strokeW = '2.5'; stroke = '#ff9933'; fill = '#2a1a08'; }
+
+  g.appendChild(el('rect', { x, y, width: w, height: NODE_H, rx: '6', fill, stroke, 'stroke-width': strokeW, 'stroke-opacity': '.9' }));
+  if (isRoot && !isLeaf)
+    g.appendChild(el('rect', { x: x-2, y: y-2, width: w+4, height: NODE_H+4, rx: '8', fill: 'none', stroke: '#ffdd57', 'stroke-width': '1', 'stroke-opacity': '.2' }));
+
+  for (let ki = 0; ki < node.keys.length; ki++) {
+    const key = node.keys[ki];
+    const cx = x + 4 + ki * cw;
+    const isSel = key === selectedKey;
+    const isFound = hl === 'found' && hlFoundKey[node.id] === ki;
+    const cellG = el('g', { onclick: `selectKey(${JSON.stringify(key)})`, style: 'cursor:pointer' });
+    if (ki > 0) cellG.appendChild(el('line', { x1: cx, y1: y+4, x2: cx, y2: y+NODE_H-4, stroke, 'stroke-width': '.5', 'stroke-opacity': '.3' }));
+    if (isSel)   cellG.appendChild(el('rect', { x: cx, y: y+1, width: cw, height: NODE_H-2, rx: '5', fill: '#ffdd57', opacity: '.18' }));
+    else if (isFound) cellG.appendChild(el('rect', { x: cx, y: y+1, width: cw, height: NODE_H-2, rx: '5', fill: '#4fffb0', opacity: '.2' }));
+    const txt = el('text', {
+      x: cx + cw/2, y: y + NODE_H/2 + 1,
+      'text-anchor': 'middle', 'dominant-baseline': 'central',
+      fill: isSel ? '#ffdd57' : isFound ? '#4fffb0' : (isRoot && !isLeaf ? '#ffe07a' : isLeaf ? '#a0ffcc' : '#8ec8ff'),
+      'font-family': 'JetBrains Mono,monospace', 'font-size': '12', 'font-weight': (isSel || isFound) ? '700' : '500'
+    });
+    txt.textContent = key;
+    cellG.appendChild(txt);
+    g.appendChild(cellG);
+  }
+
+  const badgeTxt = isRoot && !isLeaf ? 'R' : isLeaf ? 'L' : 'I';
+  const badgeColor = isRoot && !isLeaf ? '#ffdd57' : isLeaf ? '#4fffb0' : '#4fa8ff';
+  const badge = el('text', { x: x+w-4, y: y+5, 'text-anchor': 'end', 'dominant-baseline': 'hanging', fill: badgeColor, 'font-family': 'JetBrains Mono,monospace', 'font-size': '7.5', opacity: '.55' });
+  badge.textContent = badgeTxt;
+  g.appendChild(badge);
+}
+
+function el(tag, attrs = {}) {
+  const e = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+}
+
+// ─── HIGHLIGHT ────────────────────────────────────────────────────────────────
+function clearAllHL() { for (const k in hlState) delete hlState[k]; for (const k in hlFoundKey) delete hlFoundKey[k]; }
+function setNodeHL(node, state) { if (state) hlState[node.id] = state; else delete hlState[node.id]; }
+function clearPseudo() { document.querySelectorAll('.pline').forEach(e => e.className = 'pline'); }
+function activateLine(id) {
+  clearPseudo();
+  const e = document.getElementById(id);
+  if (e) { e.className = 'pline active'; e.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+}
+function doneLine(id) { const e = document.getElementById(id); if (e) e.className = 'pline done'; }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─── ANIMACIONES ──────────────────────────────────────────────────────────────
+async function animSearch(key) {
+  if (!root) { logEntry('Árbol vacío', 'er'); playSound('error'); return; }
+  logEntry('Buscando ' + key + '…', 'hi'); playSound('click');
+  let node = root;
+  activateLine('s1'); setNodeHL(node, 'active'); render(); await sleep(stepDelay);
+  while (!node.leaf) {
+    activateLine('s2'); await sleep(stepDelay / 2);
+    activateLine('s3');
+    let i = node.keys.findIndex(k => key < k); if (i === -1) i = node.keys.length;
+    await sleep(stepDelay / 2);
+    activateLine('s4');
+    setNodeHL(node, ''); node = node.children[i]; setNodeHL(node, 'active'); render(); await sleep(stepDelay);
+  }
+  activateLine('s6'); await sleep(stepDelay / 2);
+  const idx = node.keys.indexOf(key);
+  if (idx !== -1) {
+    activateLine('s7'); doneLine('s7');
+    hlFoundKey[node.id] = idx; setNodeHL(node, 'found'); render();
+    playSound('success'); logEntry('Clave ' + key + ' encontrada ✓', 'ok');
+  } else {
+    activateLine('s8'); doneLine('s8'); setNodeHL(node, ''); render();
+    playSound('error'); logEntry('Clave ' + key + ' NO existe → NULL', 'er');
+  }
+}
+
+async function animInsert(key) {
+  if (!root) root = new Node(true);
+  if (search(key)) { logEntry('La clave ' + key + ' ya existe', 'er'); playSound('error'); return; }
+  logEntry('Insertando ' + key + '…', 'hi'); playSound('click');
+
+  activateLine('i1');
+  let node = root; setNodeHL(node, 'active'); render(); await sleep(stepDelay);
+  while (!node.leaf) {
+    setNodeHL(node, '');
+    let i = node.keys.findIndex(k => key < k); if (i === -1) i = node.keys.length;
+    node = node.children[i]; setNodeHL(node, 'active'); render(); await sleep(stepDelay / 2);
+  }
+
+  activateLine('i2');
+  const prevLen = node.keys.length;
+  const prevRoot = root;
+  insert(key);
+  setNodeHL(node, 'active'); render(); await sleep(stepDelay);
+
+  if (prevLen < 2 * t - 1) {
+    activateLine('i3'); doneLine('i3'); setNodeHL(node, ''); render();
+    playSound('success'); logEntry('Clave ' + key + ' insertada sin desbordamiento', 'ok');
+  } else {
+    activateLine('i4'); clearAllHL(); render(); await sleep(stepDelay);
+    activateLine('i5'); playSound('warning'); await sleep(stepDelay);
+    activateLine('i6'); await sleep(stepDelay);
+    activateLine('i7'); clearAllHL(); render(); await sleep(stepDelay);
+    if (root !== prevRoot) {
+      activateLine('i8'); doneLine('i8'); playSound('success'); logEntry('Nueva raíz creada al dividir', 'warn');
+    } else {
+      activateLine('i9'); doneLine('i9'); playSound('warning'); logEntry('División propagada hacia padre', 'warn');
+    }
+    clearAllHL(); render(); logEntry('Clave ' + key + ' insertada con división', 'ok');
+  }
+}
+
+async function animDelete(key) {
+  if (!root || !search(key)) { logEntry('Clave ' + key + ' no encontrada', 'er'); playSound('error'); return; }
+  logEntry('Eliminando ' + key + '…', 'hi'); playSound('click');
+
+  activateLine('d1');
+  let node = root; setNodeHL(node, 'active'); render(); await sleep(stepDelay);
+  while (!node.leaf) {
+    setNodeHL(node, '');
+    let i = node.keys.findIndex(k => key < k); if (i === -1) i = node.keys.length;
+    node = node.children[i]; setNodeHL(node, 'active'); render(); await sleep(stepDelay / 2);
+  }
+
+  activateLine('d2'); await sleep(stepDelay);
+
+  const prevKeys = node.keys.length;
+  deleteKey(key);
+  clearAllHL(); render(); await sleep(stepDelay);
+
+  if (!root || root.keys.length === 0) {
+    activateLine('d9'); doneLine('d9'); playSound('warning'); logEntry('⚠ Raíz vacía — hijo sube', 'warn');
+  } else if (prevKeys - 1 >= t - 1) {
+    activateLine('d3'); doneLine('d3');
+    logEntry('Clave eliminada, sin subdesbordamiento ✓', 'ok'); playSound('success');
+  } else {
+    activateLine('d4'); await sleep(stepDelay / 2);
+    activateLine('d5'); await sleep(stepDelay / 2);
+    activateLine('d6'); await sleep(stepDelay / 2);
+    activateLine('d7'); doneLine('d7');
+    logEntry('Fusión/redistribución aplicada ✓', 'ok'); playSound('warning');
+  }
+  activateLine('d8'); doneLine('d8');
+  clearPseudo(); render();
+  logEntry('Árbol rebalanceado correctamente', 'ok');
+}
+
+// ─── ESTADÍSTICAS ─────────────────────────────────────────────────────────────
+function updateStats() {
+  if (!root || root.keys.length === 0) {
+    ['stat-h','stat-n','stat-i','stat-l','stat-k','stat-f'].forEach(id => document.getElementById(id).textContent = '—');
+    return;
+  }
+  let h = 0, nodes = 0, internals = 0, leaves = 0, keys = 0;
+  function walk(n, d) {
+    nodes++; h = Math.max(h, d); keys += n.keys.length;
+    if (n.leaf) { leaves++; return; }
+    internals++;
+    for (const c of n.children) walk(c, d + 1);
+  }
+  walk(root, 1);
+  const fill = Math.round((keys / (nodes * (2 * t - 1))) * 100);
+  document.getElementById('stat-h').textContent = h;
+  document.getElementById('stat-n').textContent = nodes;
+  document.getElementById('stat-i').textContent = internals;
+  document.getElementById('stat-l').textContent = leaves;
+  document.getElementById('stat-k').textContent = keys;
+  document.getElementById('stat-f').textContent = fill + '%';
+}
+
+// ─── LOG ──────────────────────────────────────────────────────────────────────
+function logEntry(msg, cls = '') {
+  const panel = document.getElementById('log-panel');
+  const d = document.createElement('div');
+  d.className = 'log-e ' + cls;
+  const now = new Date();
+  const ts = [now.getHours(), now.getMinutes(), now.getSeconds()].map(n => String(n).padStart(2,'0')).join(':');
+  d.textContent = '[' + ts + '] ' + msg;
+  panel.prepend(d);
+  while (panel.children.length > 50) panel.removeChild(panel.lastChild);
+}
+
+// ─── UI ───────────────────────────────────────────────────────────────────────
+function selectKey(k) {
+  if (isRunning) return;
+  selectedKey = selectedKey === k ? null : k;
+  playSound('click');
+  document.getElementById('del-btn').style.opacity = selectedKey !== null ? '1' : '.5';
+  render();
+}
+
+function insertKey() {
+  const inp = document.getElementById('key-input');
+  const v = parseInt(inp.value);
+  if (isNaN(v)) { logEntry('Ingresa un número válido', 'er'); playSound('error'); return; }
+  if (isRunning) return;
+  isRunning = true; clearAllHL(); clearPseudo();
+  animInsert(v).finally(() => { isRunning = false; });
+  inp.value = ''; inp.focus();
+}
+
+function searchKey() {
+  if (selectedKey === null) { logEntry('Selecciona una clave primero', 'er'); return; }
+  if (isRunning) return;
+  isRunning = true; clearAllHL(); clearPseudo();
+  animSearch(selectedKey).finally(() => { isRunning = false; });
+}
+
+function deleteSelected() {
+  if (selectedKey === null) { logEntry('Selecciona una clave primero', 'er'); return; }
+  if (isRunning) return;
+  const k = selectedKey; selectedKey = null;
+  document.getElementById('del-btn').style.opacity = '.5';
+  isRunning = true; clearAllHL(); clearPseudo();
+  animDelete(k).finally(() => { isRunning = false; });
+}
+
+function resetTree() {
+  if (isRunning) return;
+  root = new Node(true);
+  selectedKey = null; clearAllHL(); clearPseudo();
+  document.getElementById('del-btn').style.opacity = '.5';
+  playSound('warning'); logEntry('Árbol reiniciado', 'hi'); render();
+}
+
+function changeOrder() {
+  if (isRunning) return;
+  t = parseInt(document.getElementById('order-sel').value);
+  root = new Node(true);
+  selectedKey = null; clearAllHL(); clearPseudo();
+  playSound('click'); logEntry('Orden cambiado a t=' + t + '. Árbol reiniciado.', 'hi'); render();
+}
+
+function insertPreset() {
+  if (isRunning) return;
+  root = new Node(true);
+  selectedKey = null; clearAllHL(); clearPseudo();
+  const keys = [5,10,15,20,25,30,35,40,45,50,3,8,13,18,23,28,33,38,43,48,2,7,12,17,22,27,32,37,42,47];
+  for (const k of keys) insert(k);
+  logEntry('Demo: 30 claves cargadas (t=' + t + ')', 'ok');
+  playSound('success'); render(); setTimeout(fitView, 60);
+}
+
+function genTree(count) {
+  if (isRunning) return;
+  // Máximo 200 valores únicos en rango 0-999
+  const maxUnique = Math.min(count, 999);
+  const n = Math.min(Math.max(parseInt(count) || 20, 1), maxUnique);
+  root = new Node(true);
+  selectedKey = null; clearAllHL(); clearPseudo();
+  const keys = new Set();
+  let attempts = 0;
+  while (keys.size < n && attempts < n * 10) {
+    keys.add(Math.floor(Math.random() * 999) + 1);
+    attempts++;
+  }
+  for (const k of Array.from(keys).sort(() => Math.random() - 0.5)) insert(k);
+  logEntry('Árbol generado: ' + keys.size + ' claves (t=' + t + ')', 'ok');
+  playSound('success'); render(); setTimeout(fitView, 60);
+}
+
+function toggleDoublyLinked() {
+  showDoublyLinked = !showDoublyLinked;
+  const btn = document.getElementById('dbl-btn');
+  btn.textContent = showDoublyLinked ? '↔ Lista doble (ON)' : '↔ Lista doble (OFF)';
+  btn.style.borderColor = showDoublyLinked ? '#4fffb0' : 'var(--border)';
+  btn.style.color = showDoublyLinked ? '#4fffb0' : 'var(--muted)';
+  logEntry('Lista doble: ' + (showDoublyLinked ? 'ON' : 'OFF'), 'hi');
+  playSound('click'); render();
+}
+
+document.getElementById('key-input').addEventListener('keydown', e => { if (e.key === 'Enter') insertKey(); });
+
+// Init
+root = new Node(true);
+render();
+</script>
+</body>
+</html>

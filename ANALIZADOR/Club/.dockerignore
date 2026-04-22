@@ -1,0 +1,14 @@
+bin/
+obj/
+.vs/
+.vscode/
+.git/
+.gitignore
+*.log
+deploy_local.ps1
+deploy_droplet.sh
+README_DEPLOY.md
+scripts/
+*.user
+.DS_Store
+Thumbs.db

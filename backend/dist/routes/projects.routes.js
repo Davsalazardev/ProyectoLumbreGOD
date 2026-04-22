@@ -1,0 +1,21 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const projects_controller_1 = require("../controllers/projects.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const router = (0, express_1.Router)();
+router.post('/', auth_middleware_1.authMiddleware, projects_controller_1.createProject);
+router.get('/', auth_middleware_1.optionalAuthMiddleware, projects_controller_1.listProjects);
+router.get('/discover', projects_controller_1.discoverLocalProjects);
+router.post('/import', auth_middleware_1.authMiddleware, projects_controller_1.importLocalProjects);
+router.get('/:id', auth_middleware_1.optionalAuthMiddleware, projects_controller_1.getProject);
+router.post('/:id/analyze', auth_middleware_1.authMiddleware, projects_controller_1.analyzeProject);
+router.post('/:id/analyze-batch', auth_middleware_1.authMiddleware, projects_controller_1.analyzeProjectBatch);
+router.get('/:id/analyses/:analysisId', auth_middleware_1.optionalAuthMiddleware, projects_controller_1.getAnalysisStatus);
+router.get('/:id/issues', auth_middleware_1.optionalAuthMiddleware, projects_controller_1.getIssues);
+router.patch('/issues/:issueId/resolve', auth_middleware_1.authMiddleware, projects_controller_1.resolveIssue);
+router.get('/:id/metrics', auth_middleware_1.optionalAuthMiddleware, projects_controller_1.getMetrics);
+router.get('/:id/quality-gate', auth_middleware_1.optionalAuthMiddleware, projects_controller_1.getQualityGateStatus);
+router.get('/:id/badge', projects_controller_1.generateBadge);
+exports.default = router;
+//# sourceMappingURL=projects.routes.js.map

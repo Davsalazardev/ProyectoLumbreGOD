@@ -1,0 +1,67 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: codescan_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: codescan
+      POSTGRES_PASSWORD: codescan
+      POSTGRES_DB: codescan
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codescan"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: codescan_backend
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://codescan:codescan@postgres:5432/codescan
+      PORT: 4000
+      CORS_ORIGIN: http://localhost:3000
+      NODE_ENV: production
+      ANALIZADOR_PATH: /app/ANALIZADOR
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./ANALIZADOR:/app/ANALIZADOR:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: codescan_frontend
+    restart: unless-stopped
+    environment:
+      REACT_APP_API_URL: http://localhost:4000/api
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

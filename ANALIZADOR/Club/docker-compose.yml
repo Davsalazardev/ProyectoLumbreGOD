@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  juego:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: juego-multiplayer
+    ports:
+      - "80:5000"
+    environment:
+      ASPNETCORE_URLS: http://+:5000
+      ASPNETCORE_ENVIRONMENT: Production
+    restart: always
+    networks:
+      - juego-network
+
+networks:
+  juego-network:
+    driver: bridge

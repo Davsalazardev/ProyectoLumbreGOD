@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Juego de Pingüinos</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #0a0a0a url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23111" width="100" height="100"/><circle cx="50" cy="50" r="1" fill="%23222"/></svg>');
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+
+        .login-wrapper {
+            width: 100%;
+            max-width: 1000px;
+            padding: 20px;
+        }
+
+        .login-box {
+            background: rgba(10, 10, 20, 0.5);
+            border: 2px solid rgba(42, 95, 141, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 0 60px rgba(42, 95, 141, 0.2), inset 0 0 40px rgba(42, 95, 141, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 20px;
+            position: sticky;
+            top: 0;
+            background: linear-gradient(180deg, rgba(20, 20, 30, 0.98) 0%, rgba(15, 15, 25, 0.98) 100%);
+            padding-bottom: 15px;
+            z-index: 10;
+        }
+
+        .logo-img {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 10px;
+            border-radius: 50%;
+            background: #1a1a2e;
+            border: 2px solid #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .logo-img img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .login-header h1 {
+            font-size: 20px;
+            font-weight: normal;
+            letter-spacing: 1px;
+            margin-bottom: 3px;
+        }
+
+        .login-header p {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #999;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            background: #0a0a14;
+            border: 1px solid #333;
+            color: #fff;
+            font-size: 14px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #666;
+            background: #111;
+            box-shadow: 0 0 8px rgba(100, 150, 200, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #555;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #444;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .btn:hover {
+            border-color: #666;
+            background: #222;
+        }
+
+        .btn-primary {
+            background: #2a5f8d;
+            border-color: #2a5f8d;
+        }
+
+        .btn-primary:hover {
+            background: #3a7fad;
+            border-color: #3a7fad;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .message {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            text-align: center;
+            display: none;
+        }
+
+        .error-message {
+            background: rgba(220, 50, 50, 0.1);
+            border: 1px solid #dc3232;
+            color: #ff6b6b;
+        }
+
+        .success-message {
+            background: rgba(50, 200, 100, 0.1);
+            border: 1px solid #32c864;
+            color: #5eff5e;
+        }
+
+        .footer-text {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .auth-container {
+            display: flex;
+            gap: 0;
+            height: 500px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            background: rgba(20, 20, 30, 0.95);
+        }
+
+        .auth-left {
+            flex: 1;
+            padding: 40px;
+            background: linear-gradient(180deg, rgba(20, 20, 30, 0.98) 0%, rgba(15, 15, 25, 0.98) 100%);
+            border: none;
+            border-radius: 0;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow-y: auto;
+            max-height: 500px;
+        }
+
+        .auth-left::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .auth-left::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .auth-left::-webkit-scrollbar-thumb {
+            background: rgba(42, 95, 141, 0.5);
+            border-radius: 3px;
+        }
+
+        .auth-left::-webkit-scrollbar-thumb:hover {
+            background: rgba(42, 95, 141, 0.8);
+        }
+
+        .auth-right {
+            flex: 1;
+            background: linear-gradient(135deg, #3a7fbd 0%, #2a5f8d 50%, #1e4d7b 100%);
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+            min-width: 300px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-right::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .auth-right::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -30%;
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .auth-right img {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 15px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            object-fit: contain;
+            position: relative;
+            z-index: 1;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .auth-right h2 {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #fff;
+            position: relative;
+            z-index: 1;
+        }
+
+        .auth-right p {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            position: relative;
+            z-index: 1;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+
+        .form-row input {
+            width: 100%;
+        }
+
+        .view-hidden {
+            display: none;
+        }
+
+        @media (max-width: 900px) {
+            .auth-container {
+                flex-direction: column;
+            }
+
+            .auth-left {
+                border-radius: 8px 8px 0 0;
+                border-right: 1px solid #333;
+            }
+
+            .auth-right {
+                border-radius: 0 0 8px 8px;
+            }
+
+            .auth-right img {
+                width: 120px;
+                height: 120px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .login-box {
+                padding: 0;
+            }
+
+            .auth-left {
+                padding: 20px;
+                border-radius: 8px 8px 0 0;
+            }
+
+            .auth-right {
+                padding: 20px;
+                border-radius: 0 0 8px 8px;
+            }
+
+            .auth-right img {
+                width: 100px;
+                height: 100px;
+            }
+
+            .login-header h1 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-box">
+            
+            <div id="loginView" class="auth-view">
+                <div class="auth-container">
+                    <div class="auth-left">
+                        <div class="login-header">
+                            <div class="logo-img">
+                                <img src="/pinguino.png" alt="Pingüino">
+                            </div>
+                            <h1>Club UPV</h1>
+                            <p>Profe Mario.dev el mejor</p>
+                        </div>
+
+                        <form id="loginForm">
+                            <div class="form-group">
+                                <label for="username">Usuario</label>
+                                <input type="text" id="username" placeholder="nombre de usuario" maxlength="30" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="password">Contraseña</label>
+                                <input type="password" id="password" placeholder="contraseña" maxlength="50" required>
+                            </div>
+
+                            <div id="errorMessage" class="message error-message"></div>
+                            <div id="successMessage" class="message success-message"></div>
+
+                            <div class="button-group">
+                                <button type="button" class="btn btn-primary" id="loginBtn">Entrar</button>
+                                <button type="button" class="btn" id="toRegisterBtn">Registrarse</button>
+                            </div>
+                        </form>
+
+                        <div class="footer-text">
+                            Thomas x Malibran
+                        </div>
+                    </div>
+                    <div class="auth-right">
+                        <img src="/pinguino.png" alt="Pingüino">
+                        <h2>Club UPV</h2>
+                        <p>Construyendo Conciencia</p>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div id="registerView" class="auth-view view-hidden">
+                <div class="auth-container">
+                    <div class="auth-left">
+                        <form id="registerForm">
+                            <div class="form-group">
+                                <label for="regUsername">Usuario</label>
+                                <input type="text" id="regUsername" placeholder="nombre de usuario" maxlength="30" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="regPassword">Contraseña</label>
+                                <input type="password" id="regPassword" placeholder="contraseña" maxlength="50" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="regEmail">Correo Electrónico</label>
+                                <div style="display: flex; gap: 5px;">
+                                    <input type="text" id="regEmail" placeholder="0000000" maxlength="7" required style="flex: 0 0 60px;">
+                                    <div style="display: flex; align-items: center; color: #999;">@upv.edu.mx</div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Fecha de Nacimiento</label>
+                                <div class="form-row">
+                                    <input type="number" id="regDay" placeholder="Día" min="1" max="31" required>
+                                    <input type="number" id="regMonth" placeholder="Mes" min="1" max="12" required>
+                                    <input type="number" id="regYear" placeholder="Año" min="1900" required>
+                                </div>
+                            </div>
+
+                            <div id="errorMessageReg" class="message error-message"></div>
+                            <div id="successMessageReg" class="message success-message"></div>
+
+                            <div class="button-group">
+                                <button type="button" class="btn btn-primary" id="registerSubmitBtn">Registrarse</button>
+                                <button type="button" class="btn" id="toLoginBtn">Volver</button>
+                            </div>
+                        </form>
+
+                        <div class="footer-text">
+                            Thomas x Malibran
+                        </div>
+                    </div>
+                    <div class="auth-right">
+                        <img src="/upv.png" alt="UPV">
+                        <h2>UPV</h2>
+                        <p>Universidad Politécnica de Victoria</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const loginView = document.getElementById('loginView');
+        const registerView = document.getElementById('registerView');
+        
+        // Login elements
+        const loginBtn = document.getElementById('loginBtn');
+        const toRegisterBtn = document.getElementById('toRegisterBtn');
+        const loginForm = document.getElementById('loginForm');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+
+        // Register elements
+        const registerBtn = document.getElementById('registerSubmitBtn');
+        const toLoginBtn = document.getElementById('toLoginBtn');
+        const registerForm = document.getElementById('registerForm');
+        const regUsernameInput = document.getElementById('regUsername');
+        const regPasswordInput = document.getElementById('regPassword');
+        const regEmailInput = document.getElementById('regEmail');
+        const regDayInput = document.getElementById('regDay');
+        const regMonthInput = document.getElementById('regMonth');
+        const regYearInput = document.getElementById('regYear');
+        const errorMessageReg = document.getElementById('errorMessageReg');
+        const successMessageReg = document.getElementById('successMessageReg');
+
+        // Validación de email: solo números, máximo 7
+        regEmailInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 7);
+            hideMessagesReg();
+        });
+
+        // Mostrar/ocultar vistas
+        toRegisterBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginView.classList.add('view-hidden');
+            registerView.classList.remove('view-hidden');
+            regUsernameInput.focus();
+        });
+
+        toLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            registerView.classList.add('view-hidden');
+            loginView.classList.remove('view-hidden');
+            usernameInput.focus();
+        });
+
+        // Funciones de mensajes
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            successMessage.style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+        }
+
+        function hideMessages() {
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+        }
+
+        function showErrorReg(message) {
+            errorMessageReg.textContent = message;
+            errorMessageReg.style.display = 'block';
+            successMessageReg.style.display = 'none';
+        }
+
+        function showSuccessReg(message) {
+            successMessageReg.textContent = message;
+            successMessageReg.style.display = 'block';
+            errorMessageReg.style.display = 'none';
+        }
+
+        function hideMessagesReg() {
+            errorMessageReg.style.display = 'none';
+            successMessageReg.style.display = 'none';
+        }
+
+        // Hacer login con API
+        loginBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (!username) {
+                showError('Ingresa tu usuario');
+                return;
+            }
+            if (!password) {
+                showError('Ingresa tu contraseña');
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Entrando...';
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    localStorage.setItem('currentUser', username);
+                    localStorage.setItem('userPassword', password);
+                    localStorage.setItem('userCoins', data.coins || 0);
+                    showSuccess('Ingresando...');
+                    setTimeout(() => {
+                        window.location.href = '/menu.html';
+                    }, 800);
+                } else {
+                    showError(data.message || 'Error al ingresar');
+                }
+            } catch (error) {
+                showError('Error: ' + error.message);
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Entrar';
+            }
+        });
+
+        // Hacer registro con API
+        registerBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const username = regUsernameInput.value.trim();
+            const password = regPasswordInput.value.trim();
+            const emailPrefix = regEmailInput.value.trim();
+            const day = regDayInput.value.trim();
+            const month = regMonthInput.value.trim();
+            const year = regYearInput.value.trim();
+
+            if (!username) {
+                showErrorReg('Ingresa un nombre de usuario');
+                return;
+            }
+            if (username.length < 3) {
+                showErrorReg('Mínimo 3 caracteres en usuario');
+                return;
+            }
+            if (!password) {
+                showErrorReg('Ingresa una contraseña');
+                return;
+            }
+            if (password.length < 4) {
+                showErrorReg('Mínimo 4 caracteres en contraseña');
+                return;
+            }
+            if (!emailPrefix) {
+                showErrorReg('Ingresa tu número de estudiante');
+                return;
+            }
+            if (emailPrefix.length !== 7) {
+                showErrorReg('El número debe tener exactamente 7 dígitos');
+                return;
+            }
+            if (!day || !month || !year) {
+                showErrorReg('Completa tu fecha de nacimiento');
+                return;
+            }
+            
+            // Validar fecha
+            const dayNum = parseInt(day);
+            const monthNum = parseInt(month);
+            const yearNum = parseInt(year);
+            
+            if (dayNum < 1 || dayNum > 31 || monthNum < 1 || monthNum > 12 || yearNum < 1900) {
+                showErrorReg('Fecha de nacimiento inválida');
+                return;
+            }
+
+            const email = emailPrefix + '@upv.edu.mx';
+
+            registerBtn.disabled = true;
+            registerBtn.textContent = 'Registrando...';
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSuccessReg('Cuenta creada. Ingresando...');
+                    localStorage.setItem('currentUser', username);
+                    localStorage.setItem('userPassword', password);
+                    setTimeout(() => {
+                        window.location.href = '/menu.html';
+                    }, 800);
+                } else {
+                    showErrorReg(data.message || 'Error al registrar');
+                }
+            } catch (error) {
+                showErrorReg('Error: ' + error.message);
+            } finally {
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Registrarse';
+            }
+        });
+
+        // Permitir Enter para login
+        loginForm.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loginBtn.click();
+            }
+        });
+
+        // Permitir Enter para registro
+        registerForm.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                registerBtn.click();
+            }
+        });
+
+        // Limpiar mensajes cuando el usuario escribe
+        usernameInput.addEventListener('input', hideMessages);
+        passwordInput.addEventListener('input', hideMessages);
+        regUsernameInput.addEventListener('input', hideMessagesReg);
+        regPasswordInput.addEventListener('input', hideMessagesReg);
+        regDayInput.addEventListener('input', hideMessagesReg);
+        regMonthInput.addEventListener('input', hideMessagesReg);
+        regYearInput.addEventListener('input', hideMessagesReg);
+
+        // Auto-focus
+        usernameInput.focus();
+    </script>
+</body>
+</html>

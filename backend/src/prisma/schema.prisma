@@ -1,0 +1,517 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String           @id @default(cuid())
+  email              String           @unique
+  password           String // bcrypt hash
+  name               String
+  role               String           @default("ANALYST") // ADMIN, ANALYST, VIEWER
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  projects           Project[]
+  comments           Comment[]
+  notifications      Notification[]
+  projectPermissions UserPermission[]
+  auditLogs          AuditLog[]
+
+  @@map("users")
+}
+
+model Project {
+  id                 String               @id @default(cuid())
+  name               String
+  language           String
+  userId             String // Project owner
+  path               String? // Local filesystem path for ANALIZADOR projects
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  analyses           Analysis[]
+  branches           Branch[]
+  customRules        CustomRule[]
+  reports            Report[]
+  notifications      Notification[]
+  qualityGateHistory QualityGateHistory[]
+  pullRequests       PullRequest[]
+  userPermissions    UserPermission[]
+  config             ProjectConfig?
+  badges             Badge[]
+  baselines          CodelineBaseline[]
+  duplicateCode      DuplicateCode[]
+  webhookEvents      WebhookEvent[]
+
+  @@map("projects")
+}
+
+model Analysis {
+  id             String               @id @default(cuid())
+  projectId      String
+  status         String               @default("PENDING") // PENDING | RUNNING | COMPLETED | FAILED
+  startedAt      DateTime             @default(now())
+  finishedAt     DateTime?
+  branchId       String?
+  prId           String?
+  project        Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  branch         Branch?              @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  pr             PullRequest?         @relation(fields: [prId], references: [id], onDelete: SetNull)
+  issues         Issue[]
+  metrics        Metric?
+  folderMetrics  FolderMetric[]
+  fileMetrics    FileMetric[]
+  fileComplexity FileComplexity[]
+  testResults    TestResult[]
+  secrets        Secret[]
+  duplicates     DuplicateCode[]
+  incremental    IncrementalAnalysis?
+
+  @@map("analyses")
+}
+
+model Issue {
+  id                String                 @id @default(cuid())
+  analysisId        String
+  file              String
+  folder            String? // Path to folder (e.g., "src/components")
+  line              Int
+  column            Int
+  severity          String // CRITICAL | MAJOR | MINOR | INFO
+  type              String // BUG | VULNERABILITY | CODE_SMELL
+  message           String
+  rule              String
+  codeSnippet       String?                @db.Text
+  resolution        String                 @default("OPEN") // OPEN, FALSE_POSITIVE, WONT_FIX, FIXED
+  createdDate       DateTime               @default(now()) // When the issue was created
+  updatedDate       DateTime?              @updatedAt
+  owaspCategory     String? // A1, A2, A3, etc.
+  cweId             String? // CWE-79, etc.
+  isSecurityHotspot Boolean                @default(false)
+  hotspotRiskLevel  String? // LOW, MEDIUM, HIGH
+  review            String? // TO_REVIEW, REVIEWED, SAFE, VULNERABLE
+  analysis          Analysis               @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  comments          Comment[]
+  hotspotDetail     SecurityHotspotDetail?
+
+  @@map("issues")
+}
+
+model FolderMetric {
+  id              String   @id @default(cuid())
+  analysisId      String
+  folderPath      String // e.g., "src", "src/components", "src/components/ui"
+  bugs            Int      @default(0)
+  vulnerabilities Int      @default(0)
+  codeSmells      Int      @default(0)
+  files           Int      @default(0)
+  analysis        Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@unique([analysisId, folderPath])
+  @@map("folder_metrics")
+}
+
+model FileMetric {
+  id              String   @id @default(cuid())
+  analysisId      String
+  filePath        String // e.g., "src/main.ts"
+  bugs            Int      @default(0)
+  vulnerabilities Int      @default(0)
+  codeSmells      Int      @default(0)
+  loc             Int      @default(0) // Lines of code
+  analysis        Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@unique([analysisId, filePath])
+  @@map("file_metrics")
+}
+
+model Metric {
+  id                     String             @id @default(cuid())
+  analysisId             String             @unique
+  bugs                   Int                @default(0)
+  vulnerabilities        Int                @default(0)
+  codeSmells             Int                @default(0)
+  technicalDebt          Int                @default(0) // in minutes
+  loc                    Int                @default(0)
+  files                  Int                @default(0)
+  duplications           Float              @default(0.0) // Duplication %
+  coverage               Float              @default(0.0) // Test Coverage %
+  cyclomaticComplexity   Float              @default(0.0) // Average complexity
+  cognitiveComplexity    Float              @default(0.0) // Cognitive complexity
+  maintainabilityIndex   Float              @default(0.0) // 0-100 scale
+  maintainabilityRating  String             @default("A") // A-E
+  securityRating         String             @default("A") // A-E scale
+  reliabilityRating      String             @default("A") // A-E
+  sqaleDebt              Int                @default(0) // Technical debt in minutes
+  technicalDebtRatio     Float              @default(0.0) // Debt / LOC %
+  newIssues              Int                @default(0) // Issues created in this analysis
+  resolvedIssues         Int                @default(0) // Issues fixed
+  reopenedIssues         Int                @default(0) // Issues reopened
+  testCoverage           Float              @default(0.0) // Unit + Integration coverage
+  testExecutionTime      Int                @default(0) // Test execution time in ms
+  failedTests            Int                @default(0) // Number of failed tests
+  owaspA1Issues          Int                @default(0) // OWASP Top 10 issues count
+  cweIssuesCount         Int                @default(0) // CWE issues count
+  securityHotspots       Int                @default(0) // Security hotspots found
+  codeDistributionLow    Int                @default(0) // Lines with low complexity
+  codeDistributionMedium Int                @default(0) // Lines with medium complexity
+  codeDistributionHigh   Int                @default(0) // Lines with high complexity
+  rulesMetadata          String             @default("{}") @db.Text // JSON with rule counts
+  analysis               Analysis           @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  metricsHistory         MetricsEvolution[]
+
+  @@map("metrics")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  issueId   String
+  userId    String
+  text      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  projectId String
+  type      String // ISSUE_CREATED, QUALITY_GATE_FAILED, REPORT_READY
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Branch {
+  id        String     @id @default(cuid())
+  projectId String
+  name      String
+  isMain    Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  analyses  Analysis[]
+
+  @@map("branches")
+}
+
+model CustomRule {
+  id        String   @id @default(cuid())
+  projectId String
+  name      String
+  pattern   String   @db.Text
+  severity  String   @default("MINOR") // CRITICAL | MAJOR | MINOR | INFO
+  type      String   @default("CODE_SMELL") // BUG | VULNERABILITY | CODE_SMELL
+  language  String // javascript | python | java
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("custom_rules")
+}
+
+model Report {
+  id            String    @id @default(cuid())
+  projectId     String
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type          String // EXECUTIVE, TECHNICAL, COMPLIANCE, SECURITY, REMEDIATION, PDF_EXPORT
+  title         String
+  description   String?   @db.Text
+  format        String    @default("pdf") // pdf, json, html, docx
+  content       Bytes? // Binary content for PDF/DOCX
+  jsonData      String?   @db.Text // For JSON/HTML exports
+  generatedBy   String? // User ID
+  createdAt     DateTime  @default(now())
+  expiresAt     DateTime? // Auto-delete after X days
+  isPublic      Boolean   @default(false)
+  downloadCount Int       @default(0)
+
+  @@map("reports")
+}
+
+model MetricsEvolution {
+  id              String   @id @default(cuid())
+  metricId        String
+  metric          Metric   @relation(fields: [metricId], references: [id], onDelete: Cascade)
+  timestamp       DateTime @default(now())
+  bugs            Int
+  vulnerabilities Int
+  codeSmells      Int
+  coverage        Float
+  debt            Int
+  complexity      Float
+
+  @@map("metrics_evolution")
+}
+
+model QualityGateHistory {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status    String // PASSED | FAILED
+  reason    String? // Why it failed
+  timestamp DateTime @default(now())
+
+  @@map("quality_gate_history")
+}
+
+model FileComplexity {
+  id         String   @id @default(cuid())
+  analysisId String
+  analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  filePath   String
+  complexity Float // Cyclomatic / Cognitive
+  loc        Int
+  issues     Int
+  hotspots   Int
+  coverage   Float
+
+  @@map("file_complexity")
+}
+
+model SecurityHotspotDetail {
+  id                String  @id @default(cuid())
+  issueId           String  @unique
+  issue             Issue   @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  riskLevel         String // LOW, MEDIUM, HIGH
+  probability       String // LOW, MEDIUM, HIGH
+  impact            String // LOW, MEDIUM, HIGH
+  remediation       String  @db.Text
+  vulnerabilityType String
+  owaspCategory     String?
+
+  @@map("security_hotspot_details")
+}
+
+model TestResult {
+  id         String   @id @default(cuid())
+  analysisId String
+  analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  testFile   String
+  testName   String
+  status     String // PASSED, FAILED
+  duration   Int // ms
+  error      String?  @db.Text
+
+  @@map("test_results")
+}
+
+// Pull Requests and Branches
+model PullRequest {
+  id           String            @id @default(cuid())
+  projectId    String
+  project      Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  prNumber     Int // PR/MR number from git provider
+  title        String
+  description  String?           @db.Text
+  sourceBranch String
+  targetBranch String
+  status       String // OPEN, MERGED, CLOSED
+  author       String
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  mergedAt     DateTime?
+  analyses     Analysis[]
+  comparison   BranchComparison?
+
+  @@unique([projectId, prNumber])
+  @@map("pull_requests")
+}
+
+model BranchComparison {
+  id              String      @id @default(cuid())
+  prId            String      @unique
+  pr              PullRequest @relation(fields: [prId], references: [id], onDelete: Cascade)
+  baseAnalysisId  String?
+  headAnalysisId  String?
+  bugsAdded       Int         @default(0)
+  bugsRemoved     Int         @default(0)
+  vulnsAdded      Int         @default(0)
+  vulnsRemoved    Int         @default(0)
+  smellsAdded     Int         @default(0)
+  smellsRemoved   Int         @default(0)
+  coverageChange  Float       @default(0.0) // % change
+  debtChange      Int         @default(0) // minutes
+  qualityGatePass Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+
+  @@map("branch_comparisons")
+}
+
+// Code Duplication
+model DuplicateCode {
+  id         String   @id @default(cuid())
+  analysisId String
+  analysis   Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  file1      String
+  file2      String
+  startLine1 Int
+  startLine2 Int
+  endLine1   Int
+  endLine2   Int
+  lines      Int // Number of duplicated lines
+  percentage Float // % of file that is duplicate
+  hash       String // SHA256 of code block
+  Project    Project? @relation(fields: [projectId], references: [id])
+  projectId  String?
+
+  @@unique([analysisId, hash])
+  @@map("duplicate_code")
+}
+
+// Secret Detection
+model Secret {
+  id            String    @id @default(cuid())
+  analysisId    String
+  analysis      Analysis  @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  file          String
+  line          Int
+  type          String // API_KEY, PASSWORD, TOKEN, PRIVATE_KEY, AWS_SECRET, etc
+  pattern       String // Regex pattern matched
+  severity      String // CRITICAL, HIGH, MEDIUM
+  masked        String // Masked value (***masked***)
+  confirmed     Boolean   @default(false) // User confirmed if it's a real secret
+  falsePositive Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  resolvedAt    DateTime?
+
+  @@map("secrets")
+}
+
+// User Permissions per Project
+model UserPermission {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  role      String // OWNER, ADMIN, ANALYST, VIEWER
+  createdAt DateTime @default(now())
+
+  @@unique([userId, projectId])
+  @@map("user_permissions")
+}
+
+// Project Configuration
+model ProjectConfig {
+  id        String  @id @default(cuid())
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Analysis settings
+  excludePatterns String? @db.Text // JSON array of glob patterns to exclude
+  includePatterns String? @db.Text // JSON array of glob patterns to include
+  analysisTimeout Int     @default(3600) // seconds
+  maxFileSizeMB   Int     @default(5)
+
+  // Quality Gate settings
+  minCoverage   Float @default(80.0) // %
+  maxComplexity Float @default(15.0) // Cyclomatic
+  maxDebtRatio  Float @default(5.0) // %
+
+  // Security settings
+  failOnCritical Boolean @default(true)
+  detectSecrets  Boolean @default(true)
+  enableSAST     Boolean @default(true)
+
+  // Notifications
+  notifyOnFailure Boolean @default(true)
+  webhookUrl      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("project_configs")
+}
+
+// Audit Log for Admin
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String // CREATE_PROJECT, RUN_ANALYSIS, UPDATE_CONFIG, DELETE_ISSUE, etc
+  entity    String // Project, Analysis, Issue, User, etc
+  entityId  String?
+  oldValue  String?  @db.Text // JSON
+  newValue  String?  @db.Text // JSON
+  metadata  String?  @db.Text // Additional context (IP, browser, etc)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// Badge for Sharing
+model Badge {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type      String // QUALITY, COVERAGE, RATING, CUSTOM
+  metric    String // The metric displayed (e.g., A1, 85%, PASSED)
+  url       String   @unique // Public badge URL
+  markdown  String // Markdown code to embed
+  isPublic  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("badges")
+}
+
+// Historical Baseline for Comparison
+model CodelineBaseline {
+  id              String   @id @default(cuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name            String // e.g., "v1.0.0", "Main Release"
+  analysisId      String?
+  bugs            Int
+  vulnerabilities Int
+  codeSmells      Int
+  coverage        Float
+  debt            Int
+  complexity      Float
+  issues          Int
+  createdAt       DateTime @default(now())
+
+  @@unique([projectId, name])
+  @@map("codeline_baselines")
+}
+
+// Incremental Analysis Tracking
+model IncrementalAnalysis {
+  id                 String   @id @default(cuid())
+  analysisId         String   @unique
+  analysis           Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  changedFiles       String?  @db.Text // JSON array of file paths
+  isIncremental      Boolean  @default(true)
+  baselineAnalysisId String?
+  createdAt          DateTime @default(now())
+
+  @@map("incremental_analyses")
+}
+
+// Webhook Events for CI/CD Integration
+model WebhookEvent {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  event     String // PUSH, PULL_REQUEST, MERGE, etc
+  branch    String?
+  commit    String?
+  status    String // PENDING, SUCCESS, FAILURE
+  payload   String?  @db.Text // Full webhook payload
+  createdAt DateTime @default(now())
+
+  @@map("webhook_events")
+}

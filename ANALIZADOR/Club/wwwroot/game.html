@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>FNAF Multijugador - Juego</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    
+    <div id="adminPanel" style="display: none; width: 100%; height: 100vh; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 20px; box-sizing: border-box; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-y: auto;">
+        <div style="max-width: 1400px; margin: 0 auto;">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid #667eea; padding-bottom: 20px;">
+                <h1 style="margin: 0; font-size: 32px; color: #667eea;">👨‍💼 PANEL DE ADMINISTRACIÓN</h1>
+                <button id="exitAdminBtn" style="padding: 10px 20px; background: #e74c3c; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">SALIR DEL MODO ADMIN</button>
+            </div>
+
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+                
+                <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid #667eea; border-radius: 12px; padding: 20px;">
+                    <h2 style="color: #667eea; margin-top: 0; display: flex; align-items: center; gap: 10px;">
+                        <span>👥</span> Jugadores Activos (<span id="activePlayersCount">0</span>)
+                    </h2>
+                    <div id="activePlayersTable" style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <thead>
+                                <tr style="background: rgba(102, 126, 234, 0.1);">
+                                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #667eea;">Nombre</th>
+                                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #667eea;">IP</th>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 1px solid #667eea;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activePlayersBody">
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                
+                <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid #e74c3c; border-radius: 12px; padding: 20px;">
+                    <h2 style="color: #e74c3c; margin-top: 0; display: flex; align-items: center; gap: 10px;">
+                        <span>🚫</span> IPs Baneadas (<span id="bannedIPsCount">0</span>)
+                    </h2>
+                    <div id="bannedIPsTable" style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <thead>
+                                <tr style="background: rgba(231, 76, 60, 0.1);">
+                                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #e74c3c;">IP</th>
+                                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #e74c3c;">Razón</th>
+                                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #e74c3c;">Banneado por</th>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 1px solid #e74c3c;">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bannedIPsBody">
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                
+                <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid #f39c12; border-radius: 12px; padding: 20px;">
+                    <h2 style="color: #f39c12; margin-top: 0; display: flex; align-items: center; gap: 10px;">
+                        <span>⏸️</span> Cuentas Suspendidas (<span id="suspendedAccountsCount">0</span>)
+                    </h2>
+                    <div id="suspendedAccountsTable" style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <thead>
+                                <tr style="background: rgba(243, 156, 18, 0.1);">
+                                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #f39c12;">Usuario</th>
+                                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #f39c12;">Razón</th>
+                                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #f39c12;">Estado</th>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 1px solid #f39c12;">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="suspendedAccountsBody">
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                
+                <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid #3498db; border-radius: 12px; padding: 20px;">
+                    <h2 style="color: #3498db; margin-top: 0; display: flex; align-items: center; gap: 10px;">
+                        <span>🔇</span> Usuarios Muteados (<span id="mutedUsersCount">0</span>)
+                    </h2>
+                    <div id="mutedUsersTable" style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <thead>
+                                <tr style="background: rgba(52, 152, 219, 0.1);">
+                                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #3498db;">Usuario</th>
+                                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #3498db;">Tiempo Restante</th>
+                                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #3498db;">Razón</th>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 1px solid #3498db;">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mutedUsersBody">
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div style="margin-top: 30px; text-align: center;">
+                <button id="refreshAdminDataBtn" style="padding: 12px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;">🔄 REFRESCAR DATOS</button>
+            </div>
+        </div>
+    </div>
+
+    
+    <div id="gameContainer">
+        
+        <div id="coinsDisplay" style="
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        ">
+            <img src="/moneda.png" alt="moneda" style="width: 30px; height: 30px;">
+            <span id="coinsAmount" style="color: #FFD700; font-size: 20px; font-weight: bold;">0</span>
+        </div>
+
+        
+        <button onclick="goToMenu()" style="
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 2px solid #666;
+            border-radius: 10px;
+            padding: 10px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        " onmouseover="this.style.background='rgba(100,100,100,0.8)'" onmouseout="this.style.background='rgba(0,0,0,0.7)'">
+            ← MENÚ
+        </button>
+
+        
+        <div style="
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 11px;
+            z-index: 100;
+        ">
+            <div style="margin-bottom: 4px;"><kbd style="background: #555; padding: 2px 5px; border-radius: 3px; font-size: 10px;">E</kbd> Personaje</div>
+            <div style="margin-bottom: 4px;"><kbd style="background: #555; padding: 2px 5px; border-radius: 3px; font-size: 10px;">F</kbd> Amigos</div>
+            <div><kbd style="background: #555; padding: 2px 5px; border-radius: 3px; font-size: 10px;">T</kbd> Tienda</div>
+        </div>
+        
+        <div id="gameWrapper">
+            <div id="mainGameArea">
+                <canvas id="canvas" width="1050" height="650" style="display: block; width: 100%; height: 100%;"></canvas>
+                <div id="playersList">
+                    <h3>JUGADORES EN LINEA</h3>
+                    <div id="playersListContent"></div>
+                </div>
+            </div>
+            <div id="chatArea">
+                <div id="messagesContainer"></div>
+                <div id="messageInputArea">
+                    <input type="text" id="messageInput" placeholder="Escribe un mensaje..." maxlength="100">
+                    <button id="sendMessageButton">Enviar</button>
+                </div>
+            </div>
+        </div>
+
+        
+        <div id="mobileControls" style="display: none;">
+            <div id="movementPad">
+                <button class="dpad-btn" id="upBtn">^</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="dpad-btn" id="leftBtn"><</button>
+                    <button class="dpad-btn" id="downBtn">v</button>
+                    <button class="dpad-btn" id="rightBtn">></button>
+                </div>
+            </div>
+        </div>
+
+        
+        <div id="gunGameContainer">
+            <h2>DUELO DE PISTOLAS</h2>
+            <p id="gunGameOpponent">Enfrentando a: <strong id="opponentName">Cargando...</strong></p>
+            <div class="score">Tu Puntuacion: <span id="gunScore">0</span></div>
+            <div class="score">Puntuacion del Rival: <span id="gunOpponentScore">0</span></div>
+            <p id="gunGameStatus">Apunta y dispara con suerte...</p>
+            <div id="gunGameButtons">
+                <button class="gun-btn" id="fireButton">DISPARA</button>
+                <button class="gun-btn" id="exitGunButton">Salir</button>
+            </div>
+        </div>
+
+        
+        <div id="gameInvitationModal" style="display: none;">
+            <div style="background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 12px; padding: 30px; text-align: center; color: #333; backdrop-filter: blur(10px);">
+                <h2 style="color: #333; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">INVITACION A DUELO</h2>
+                <p id="invitationText" style="font-size: 16px; margin: 20px 0; color: #666;"><strong id="inviterName">Jugador</strong> te ha invitado a un duelo</p>
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 30px;">
+                    <button id="acceptInvitationBtn" style="padding: 12px 25px; background: linear-gradient(135deg, #999 0%, #666 100%); color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;">ACEPTAR</button>
+                    <button id="rejectInvitationBtn" style="padding: 12px 25px; background: linear-gradient(135deg, #ccc 0%, #aaa 100%); color: #333; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;">RECHAZAR</button>
+                </div>
+            </div>
+        </div>
+
+        
+        <div id="gameMainModal" style="display: none;">
+            <div style="background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 12px; padding: 30px; text-align: center; color: #333; max-width: 400px; backdrop-filter: blur(10px);">
+                <h2 style="color: #333; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">AREA DE DUELO</h2>
+                <p style="margin-bottom: 30px; font-size: 14px; color: #666;">Que deseas hacer?</p>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button id="startDuelBtn" style="padding: 14px 25px; background: linear-gradient(135deg, #999 0%, #666 100%); color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px;">DUELO AUTOMATICO</button>
+                    <button id="invitePlayerBtn" style="padding: 14px 25px; background: linear-gradient(135deg, #999 0%, #666 100%); color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px;">INVITAR JUGADOR</button>
+                    <button id="closeGameModalBtn" style="padding: 14px 25px; background: linear-gradient(135deg, #ccc 0%, #aaa 100%); color: #333; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.3s; text-transform: uppercase; letter-spacing: 1px;">CERRAR</button>
+                </div>
+            </div>
+        </div>
+
+        
+        <div id="invitePlayerModal" style="display: none;">
+            <div style="background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 12px; padding: 30px; text-align: center; color: #333; max-width: 400px; backdrop-filter: blur(10px);">
+                <h2 style="color: #333; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">DESAFIAR A DUELO</h2>
+                <p style="margin-bottom: 20px; color: #666;">Selecciona un jugador para invitar:</p>
+                <select id="playerSelectForInvite" style="width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid rgba(0, 0, 0, 0.2); border-radius: 8px; background: rgba(255, 255, 255, 0.9); color: #333; font-size: 14px;">
+                    <option value="">-- Selecciona un jugador --</option>
+                </select>
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <button id="sendInviteBtn" style="padding: 12px 25px; background: linear-gradient(135deg, #999 0%, #666 100%); color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;">ENVIAR</button>
+                    <button id="closeInviteModalBtn" style="padding: 12px 25px; background: linear-gradient(135deg, #ccc 0%, #aaa 100%); color: #333; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;">CANCELAR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <script src="signalr.min.js"></script>
+    
+    <script>
+        // Verificar sesión ANTES de cargar game.js
+        function initGameAfterLoad() {
+            console.log('🟢 document.readyState:', document.readyState);
+            console.log('🟢 gameContainer exists:', !!document.getElementById('gameContainer'));
+            console.log('🟢 canvas exists:', !!document.getElementById('canvas'));
+            
+            const currentUser = localStorage.getItem('currentUser');
+            if (!currentUser) {
+                // Si no hay usuario en sesión, redirigir a login
+                console.log('❌ No hay usuario en sesión, redirigiendo a login');
+                window.location.href = '/login.html';
+                return;
+            }
+
+            // Leer datos del menú para verificar que existan
+            const playerName = localStorage.getItem('playerName') || currentUser;
+            const penguinType = localStorage.getItem('penguinType') || 'basico';
+            const deviceType = localStorage.getItem('deviceType') || 'desktop';
+            const isAdminMode = localStorage.getItem('isAdminMode') === 'true';
+            const adminPassword = isAdminMode ? localStorage.getItem('adminPassword') : null;
+
+            // Los scripts de game.js esperarán estos valores en localStorage
+            console.log('✅ Sesión verificada - Jugador:', playerName);
+            console.log('✅ Pingüino:', penguinType);
+            console.log('✅ Dispositivo:', deviceType);
+            if (isAdminMode) {
+                console.log('✅ Modo Admin activado');
+            }
+            
+            // Ahora cargar game.js
+            console.log('📥 Cargando game.js...');
+            const script = document.createElement('script');
+            script.src = 'game.js';
+            script.onerror = function() {
+                console.error('❌ Error cargando game.js');
+            };
+            script.onload = function() {
+                console.log('✅ game.js cargado correctamente');
+            };
+            document.body.appendChild(script);  // Append to body, not head
+        }
+        
+        // Wait for DOM to be fully loaded
+        if (document.readyState === 'loading') {
+            console.log('🟡 DOM loading, waiting for DOMContentLoaded...');
+            document.addEventListener('DOMContentLoaded', initGameAfterLoad);
+        } else {
+            console.log('🟢 DOM already loaded, initializing immediately...');
+            initGameAfterLoad();
+        }
+    </script>
+</body>
+</html>
